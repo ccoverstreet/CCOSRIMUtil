@@ -4,11 +4,11 @@ from PyQt6.QtCore import Qt,QSize
 from PyQt6.QtGui import QFont
 import sys
 import matplotlib.pyplot as plt
-import ccosrimutil_v5  as csu
+from . import postprocess as csu # Stands for CCO SRIM Utility
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 import numpy as np
-import srim as srim
+from . import srim
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -102,6 +102,7 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.max_energy_input = QtWidgets.QDoubleSpinBox()
         self.max_energy_input.setMinimum(10)
         self.max_energy_input.setMaximum(1E9)
+        self.max_energy_input.setValue(1000)
         self.max_energy_row.addWidget(self.max_energy_label)
         self.max_energy_row.addWidget(self.max_energy_input)
 
@@ -122,6 +123,7 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.density_row = QtWidgets.QHBoxLayout()
         self.density_label = QtWidgets.QLabel("Density (g/cm<sup>3</sup>):")
         self.density_input = QtWidgets.QDoubleSpinBox()
+        self.density_input.setValue(1.0)
         self.density_row.addWidget(self.density_label)
         self.density_row.addWidget(self.density_input)
 
@@ -209,6 +211,7 @@ class TargetElementRow(QtWidgets.QWidget):
         super().__init__()
         self.elembox = ElementComboBox()
         self.stoich_input = QtWidgets.QDoubleSpinBox()
+        self.stoich_input.setValue(1.0)
         self.stoich_input.setMaximumWidth(80)
         self.stoich_input.setMaximum(1000)
 
@@ -228,7 +231,7 @@ class TargetElementRow(QtWidgets.QWidget):
 
 
 class MaterialForm(QtWidgets.QWidget):
-    new_data = Signal(np.ndarray)
+    new_data = Signal(csu.SRIMTable)
 
     def __init__(self):
         super().__init__()
@@ -380,12 +383,14 @@ class PlottingFrame(QtWidgets.QWidget):
         self.dEdx_E = PlotTab()
         self.annotated = PlotTab()
         self.deriv = PlotTab()
+        self.E_x = PlotTab()
 
         #layout.addWidget(demo)
         self.tab_widget.addTab(self.dEdx_x, "dE/dx(x)")
         self.tab_widget.addTab(self.dEdx_E, "dE/dx(E)")
         self.tab_widget.addTab(self.annotated, "dE/dx(x) annotated")
         self.tab_widget.addTab(self.deriv, "(dE/dx(x))'")
+        self.tab_widget.addTab(self.E_x, "E(x)")
         self.tab_widget.currentChanged.connect(self.refresh_tab)
         layout.addWidget(self.tab_widget)
 
@@ -399,14 +404,14 @@ class PlottingFrame(QtWidgets.QWidget):
     def plot_table(self, data):
         # dEdx(x) plot
         self.dEdx_x.axes.clear()
-        self.dEdx_x.axes.plot(data[:, 0], data[:, 1], color="tab:red", label="Electronic dE/dx")
-        self.dEdx_x.axes.plot(data[:, 0], data[:, 2], color="tab:blue", label="Nuclear dE/dx")
-        self.dEdx_x.axes.plot(data[:, 0], data[:, 3], color="k", label="Total dE/dx")
+        self.dEdx_x.axes.plot(data.depth, data.dedx_elec, color="tab:red", label="Electronic dE/dx")
+        self.dEdx_x.axes.plot(data.depth, data.dedx_nuc, color="tab:blue", label="Nuclear dE/dx")
+        self.dEdx_x.axes.plot(data.depth, data.dedx_total, color="k", label="Total dE/dx")
         self.dEdx_x.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
         self.dEdx_x.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
         self.dEdx_x.axes.tick_params(axis="both", which="major", labelsize=12)
-        self.dEdx_x.axes.set_xlim(0, np.max(data[:, 0]) * 1.05)
-        self.dEdx_x.axes.set_ylim(0, np.max(data[:, 1]) * 1.05)
+        self.dEdx_x.axes.set_xlim(0, np.max(data.depth) * 1.05)
+        self.dEdx_x.axes.set_ylim(0, np.max(data.dedx_total) * 1.05)
         self.dEdx_x.axes.legend(fontsize=12)
         #self.dEdx_x.fig.tight_layout()
         self.dEdx_x.fig.tight_layout()
@@ -414,65 +419,59 @@ class PlottingFrame(QtWidgets.QWidget):
 
         # dEdx(E) plot
         self.dEdx_E.axes.clear()
-        self.dEdx_E.axes.plot(data[:, 4], data[:, 1], color="tab:red", label="Electronic dE/dx")
-        self.dEdx_E.axes.plot(data[:, 4], data[:, 2], color="tab:blue", label="Nuclear dE/dx")
-        self.dEdx_E.axes.plot(data[:, 4], data[:, 3], color="k", label="Total dE/dx")
+        self.dEdx_E.axes.plot(data.energy, data.dedx_elec, color="tab:red", label="Electronic dE/dx")
+        self.dEdx_E.axes.plot(data.energy, data.dedx_nuc, color="tab:blue", label="Nuclear dE/dx")
+        self.dEdx_E.axes.plot(data.energy, data.dedx_total, color="k", label="Total dE/dx")
         self.dEdx_E.axes.set_xlabel(r"Energy [keV]", fontsize=16)
         self.dEdx_E.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
         self.dEdx_E.axes.tick_params(axis="both", which="major", labelsize=12)
         #self.dEdx_E.axes.set_xlim(0, np.max(data[:, 4]) * 1.05)
-        self.dEdx_E.axes.set_ylim(0, np.max(data[:, 3]) * 1.05)
+        self.dEdx_E.axes.set_ylim(0, np.max(data.dedx_total) * 1.05)
         self.dEdx_E.axes.set_xscale("log")
         self.dEdx_E.axes.legend(fontsize=12)
         #self.dEdx_E.fig.tight_layout()
         self.dEdx_E.fig.tight_layout()
         self.dEdx_E.update_plot()
 
-
         # Annotated plot
         self.annotated.axes.clear()
 
         # find 10% dev
-        flipped = np.flip(data, axis=0)
-        dEdx_0 = flipped[0, 1]
+        dEdx_0 = data.dedx_total[0]
+        dev_depth = 0
 
         # Find depth where stopping is more than 10%
         # We linearly interpolate to find the exact point
-        for i, val in enumerate(flipped[:, 1]):
+        for i, val in enumerate(data.dedx_total):
             print(val, dEdx_0)
             delta = np.abs(val - dEdx_0) / dEdx_0
-            print(delta)
             if delta > 0.1:
-                before = flipped[i - 1, 1]
-                after = flipped[i, 1]
-
-                before_x = flipped[i - 1, 0]
-                after_x = flipped[i, 0]
-
-                print()
-                print(before_x, after_x)
-                print(before, after)
+                # This should never trigger in a case where array length is 0
+                # which prevents invalid access.
+                y1 = data.dedx_total[i]
+                y0 = data.dedx_total[i-1]
+                x1 = data.depth[i]
+                x0 = data.depth[i-1]
 
                 target = dEdx_0 * 0.9
 
-                print(target)
+                #if before > after:
+                #    dev_depth = np.interp(target, [after, before], [after_x, before_x])
+                #else:
+                #    dev_depth = np.interp(target, [before, after], [before_x, after_x])
 
-                if before > after:
-                    dev_depth = np.interp(target, [after, before], [after_x, before_x])
-                else:
-                    dev_depth = np.interp(target, [before, after], [before_x, after_x])
+                dev_depth = np.interp(target, [y0, y1], [x0, x1])
 
-                print(dev_depth)
                 break
 
 
-        self.annotated.axes.plot(data[:, 0], data[:, 1], color="k", label="Total dE/dx")
+        self.annotated.axes.plot(data.depth, data.dedx_total, color="k", label="Total dE/dx")
         self.annotated.axes.axvline(dev_depth, color="k", ls="--", label=f"10% dEdx(x) deviation ({round(dev_depth, 2)} " + r"$\mu m$)")
         self.annotated.axes.set_xlabel(r"Energy [keV]", fontsize=16)
         self.annotated.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
         self.annotated.axes.tick_params(axis="both", which="major", labelsize=12)
-        self.annotated.axes.set_xlim(0, np.max(data[:, 0]) * 1.05)
-        self.annotated.axes.set_ylim(0, np.max(data[:, 1]) * 1.05)
+        self.annotated.axes.set_xlim(0, np.max(data.depth) * 1.05)
+        self.annotated.axes.set_ylim(0, np.max(data.dedx_total) * 1.05)
         self.annotated.axes.legend(fontsize=12)
         self.annotated.fig.tight_layout()
         self.annotated.update_plot()
@@ -480,11 +479,18 @@ class PlottingFrame(QtWidgets.QWidget):
 
         # (dE/dx)'
         self.deriv.axes.clear()
-        dEdxp = np.diff(flipped[:, 3]) / np.diff(flipped[:, 0])
-        dEdxp_x = np.diff(flipped[:, 0]) / 2 + flipped[:-1, 0]
+        dEdxp = np.diff(data.dedx_total) / np.diff(data.depth)
+        dEdxp_x = np.diff(data.depth) / 2 + data.depth[:-1]
 
         self.deriv.axes.plot(dEdxp_x, dEdxp)
         self.deriv.update_plot()
+
+        # E(x)
+        self.E_x.axes.clear()
+        self.E_x.axes.plot(data.depth, data.dedx_total)
+        self.E_x.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
+        self.E_x.axes.set_ylabel(r"Energy (keV)", fontsize=16)
+        self.E_x.update_plot()
 
 
 
