@@ -81,6 +81,8 @@ def run_srim_config(srim_config):
         ret = subprocess.run('"' + str(MODULE_PATH) + "/" + "SRModule.exe" + '"', cwd=str(MODULE_PATH), capture_output=True)
     elif sys.platform == "linux":
         ret = subprocess.run(["wine", str(MODULE_PATH) + "/" + "SRModule.exe"], cwd=str(MODULE_PATH), capture_output=True)
+    else:
+        raise Error("Mac not supported")
 
     if ret.returncode != 0:
         raise Error("Unable to run SR Module" + str(ret))
