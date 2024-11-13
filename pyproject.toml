@@ -6,11 +6,12 @@ authors = [
 ]
 description = "Python wrapper and GUI for running SRIM calculations"
 readme = "README.md"
-requires-python = ">3.8"
+requires-python = ">3.9"
 dependencies = [
 	"pillow",
 	"numpy",
-	"matplotlib"
+	"matplotlib",
+	"pyqt6"
 ]
 
 [build-system]
