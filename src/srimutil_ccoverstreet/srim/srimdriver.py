@@ -77,7 +77,13 @@ def run_srim_config(srim_config):
     #with open(sr_in, "w", newline="\n") as f:
         f.write(srim_config.to_input_file_str())
 
-    subprocess.run(str(MODULE_PATH) + "/" + "SRModule.exe", cwd=str(MODULE_PATH))
+    if sys.platform == "win32":
+        ret = subprocess.run('"' + str(MODULE_PATH) + "/" + "SRModule.exe" + '"', cwd=str(MODULE_PATH), capture_output=True)
+    elif sys.platform == "linux":
+        ret = subprocess.run(["wine", str(MODULE_PATH) + "/" + "SRModule.exe"], cwd=str(MODULE_PATH), capture_output=True)
+
+    if ret.returncode != 0:
+        raise Error("Unable to run SR Module" + str(ret))
 
 
 # -------------------- POST PROCESSING --------------------

@@ -2,8 +2,8 @@ MANIFEST.in
 README.md
 pyproject.toml
 src/srimutil_ccoverstreet/__main__.py
-src/srimutil_ccoverstreet/ccosrimutil.py
 src/srimutil_ccoverstreet/ccosrimutil_gui.py
+src/srimutil_ccoverstreet/postprocess.py
 src/srimutil_ccoverstreet.egg-info/PKG-INFO
 src/srimutil_ccoverstreet.egg-info/SOURCES.txt
 src/srimutil_ccoverstreet.egg-info/dependency_links.txt
