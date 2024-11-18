@@ -13,15 +13,21 @@ MULTS = {
     "A": 1E-4,
     "um": 1,
     "mm": 1E3,
+    "m": 1E6,
     "keV": 1,
     "MeV": 1E3,
     "GeV": 1e6
 }
 
 @dataclass
-class SrimData:
+class SRIMData:
     rho: float
-    data: np.array
+    energy: np.array
+    dedx_elec: np.array
+    dedx_nuc: np.array
+    proj_range: np.array
+    long_straggling: np.array
+    lat_straggling: np.array
 
 # Convert all to keV and micron
 def read_file(filename):
@@ -29,6 +35,7 @@ def read_file(filename):
         collect = False
         collect_count = 0
         out = []
+        out.append([0, 0, 0, 0, 0, 0])
         conversion = 1.0
         rho = 1.0
 
@@ -68,9 +75,15 @@ def read_file(filename):
         out[:, 1] = out[:, 1] * conversion
         out[:, 2] = out[:, 2] * conversion
 
+        energy = out[:, 0].T
+        elec = out[:, 1].T
+        nuc = out[:, 2].T
+        proj_range = out[:, 3].T
+        long_straggling = out[:, 4].T
+        lat_straggling = out[:, 5].T
 
-
-        return SrimData(rho, out)
+        return SRIMData(rho, energy, elec, nuc,
+                        proj_range, long_straggling, lat_straggling)
 
 def range_to_depth(range_data):
     return range_data[-1] - range_data
@@ -105,25 +118,81 @@ class ConversionConfig:
     rho: float
     packing: float
 
-def convert_srim_to_table(srim_data, conv_config: ConversionConfig):
+@dataclass
+class SRIMTable:
+    # Data is reordered so that depth is increasing 
+    rho: float
+    packing_frac: float
+    depth: np.array
+    dedx_elec: np.array
+    dedx_nuc: np.array
+    dedx_total: np.array
+    energy: np.array
+    long_straggling: np.array
+    lat_straggling: np.array
+
+    def to_numpy(self):
+        return np.vstack([
+            self.depth,
+            self.dedx_elec,
+            self.dedx_nuc,
+            self.dedx_total,
+            self.energy,
+            self.long_straggling,
+            self.lat_straggling
+        ]).T
+
+    def save_to_file(self, filepath):
+        with open(filepath, "w") as f:
+            f.write(f"# rho = {self.rho}\n")
+            f.write(f"# packing fraction = {self.packing_frac}\n")
+            f.write(f"# Depth [micron], de/dx elec., de/dx nuc., de/dx total, Energy [keV], long. straggling [micron], lat. straggling [micron]\n")
+            for i in range(0, len(self.depth)):
+                f.write(f"{self.depth[i]}, {self.dedx_elec[i]}, {self.dedx_nuc[i]}, {self.dedx_total[i]}, {self.energy[i]}, {self.long_straggling[i]}, {self.lat_straggling[i]}\n")
+                
+
+
+def convert_srim_to_table(srim_data: SRIMData, conv_config: ConversionConfig):
+    """Converts SRIMData to SRIMTable with depths corrected for density and packing fraction
+
+    Parameters
+    ----------
+    srim_data : SRIMData
+    conv_config: ConversionConfig
+        Contains density and packing fraction used in post-processing
+
+    Returns
+    -------
+    srim_table: SRIMTable
+    """
     rho = conv_config.rho
     packing_frac = conv_config.packing
-
-    data = srim_data.data
 
     # Apply correction in case new density is different from density
     # in SRIM file
     rho_corr = rho / srim_data.rho
 
     # Get basic columns
-    energies = data[:, 0]
-    depth = range_to_depth(data[:, 3]) / packing_frac / rho_corr
-    elec_dedx = dedx_to_kev_nm(data[:,1]) * rho_corr
-    nuclear_dedx = dedx_to_kev_nm(data[:, 2]) * rho_corr
-    total_dedx = elec_dedx + nuclear_dedx
+    # MAKE SURE DATA IS FLIPPED
+    # We assume isotropic material proerties when converting
+    # range and straggling. Conversion for range and straggling
+    # is assumed to be identical.
+    data = srim_data
+    energy = np.flip(data.energy)
+    depth = np.flip(range_to_depth(data.proj_range) / packing_frac / rho_corr)
+    elec_dedx = np.flip(dedx_to_kev_nm(data.dedx_elec) * rho_corr)
+    nuclear_dedx = np.flip(dedx_to_kev_nm(data.dedx_nuc) * rho_corr)
+    total_dedx = np.flip(elec_dedx + nuclear_dedx)
+    long_straggling = np.flip(range_to_depth(data.long_straggling) / packing_frac / rho_corr)
+    lat_straggling = np.flip(range_to_depth(data.lat_straggling) / packing_frac / rho_corr)
 
 
-    return np.vstack((depth, elec_dedx, nuclear_dedx, elec_dedx + nuclear_dedx, energies)).T
+    return SRIMTable(
+        conv_config.rho, conv_config.packing,
+        depth, elec_dedx, nuclear_dedx,
+        elec_dedx + nuclear_dedx, energy,
+        long_straggling, lat_straggling
+    )
 
 
 def process_file(proc_config):
@@ -268,7 +337,6 @@ def process_file(proc_config):
     plt.show()
 
 
-
 def cli_main():
     import argparse
 
@@ -291,58 +359,10 @@ def cli_main():
     process_file(proc_config)
 
 
-def gui_main():
-    import PySimpleGUI as sg
-    layout = [
-        [sg.Text("CCO Srim Util")],
-        [sg.Text("Select SRIM Output File"), sg.FileBrowse(key="srimoutputfile")],
-        [sg.Text("Density (g/cm^3)"), sg.Input(key="density")],
-        [sg.Text("Packing fraction ([0, 1])"), sg.Input(key="packingfraction")],
-        [sg.Text("Output File"), sg.FileSaveAs(key="outputfile", file_types=(("Comma-separated values (CSV)", "*.csv"),))],
-        [sg.Button("Process")]
-    ]
-
-    window = sg.Window("CCO Srim Util", layout, finalize=True)
-
-
-
-    while True:
-        event, values = window.read()
-        print(event, values)
-        if event in (sg.WIN_CLOSED, "Cancel"):
-            break
-        elif event == "Process":
-            print(values)
-            print("Plotting")
-            try: 
-                conf = ProcessConfig(
-                    values["srimoutputfile"],
-                    values["outputfile"],
-                    float(values["density"]),
-                    float(values["packingfraction"])
-                )
-            except:
-                print("Invalid value entered.")
-                continue
-
-            process_file(conf)
-
-            
-
-
-
-    window.close()
-    
-
 
 if __name__ == "__main__":
     import sys
 
     print("You may run again with '--help' as an argument to see additional options")
-
-    # Run in GUI mode 
-    if len(sys.argv) == 1:
-        gui_main()
-    else:
-        cli_main()
+    cli_main()
 

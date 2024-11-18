@@ -1,0 +1,23 @@
+[project]
+name = "srimutil_ccoverstreet"
+version = "0.0.1"
+authors = [
+	{ name="Cale Overstreet" }
+]
+description = "Python wrapper and GUI for running SRIM calculations"
+readme = "README.md"
+requires-python = ">3.9"
+dependencies = [
+	"pillow",
+	"numpy",
+	"matplotlib",
+	"pyqt6"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+#[project.urls]
+#"Source" = "https://github.com/ccoverstreet/horiba-raman"
+#"Documentation" = " https://horiba-raman.readthedocs.io/en/latest/horiba_raman_ccoverstreet.html"
