@@ -5,7 +5,7 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('src/srimutil_ccoverstreet/srim/*', 'srimutil_ccoverstreet/srim')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
