@@ -1,4 +1,4 @@
-import srim 
+from srimutil_ccoverstreet import srim, postprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -57,36 +57,33 @@ def main():
         srim.run_srim_config(srim_conf)
 
         # Load the table and reverse so depths are in increasing order
-        table = srim.convert_srim_to_table(srim.read_srim_output_file(srim_output_file),
+        table = postprocess.convert_srim_to_table(postprocess.read_file(srim_output_file),
                                    srim.ConversionConfig(layer.density, 1.0))
-        table = table[::-1]
 
         # Find where depth in table is greater than layer
-        ind = np.argmax(table[:, 0] > layer.thickness)
-        print("Index", ind, table[:ind, :])
+        ind = np.argmax(table.depth > layer.thickness)
 
         # Interpolate to find values at layer boundary
         # Assuming energy loss as a function of depth is linear
         # within interpolation region
         depth = layer.thickness
-        nuclear = np.interp(depth, table[:, 0], table[:, 1])
-        electronic = np.interp(depth, table[:, 0], table[:, 2])
-        total = np.interp(depth, table[:, 0], table[:, 3])
-        boundary_energy = np.interp(depth, table[:, 0], table[:, 4])
+        nuclear = np.interp(depth, table.depth, table.dedx_nuc)
+        electronic = np.interp(depth, table.depth, table.dedx_elec)
+        total = np.interp(depth, table.depth, table.dedx_total)
+        boundary_energy = np.interp(depth, table.depth, table.energy)
 
         # Add previous boundary point to all x values
-        table[:, 0] = table[:, 0] + prev_x
-        #print(table)
+        table.depth = table.depth + prev_x
 
         E_cur = boundary_energy
         if ind == 0:
             # layer thickness is larger than ion range
-            chunk = table[:, :]
+            chunk = table.to_numpy()[:, :-2]
         else:
             # Ion range is larger than layer
             chunk = np.vstack((
-                table[:ind, :],
-                np.array([depth + prev_x, nuclear, electronic, total, boundary_energy])
+                table.to_numpy()[:ind, :-2],
+                np.array([depth + prev_x, electronic, nuclear, total, boundary_energy])
             ))
 
         chunks.append(chunk)
@@ -98,7 +95,9 @@ def main():
         prev_x += depth
 
         # Plot current table as sanity check
-        plt.plot(table[:, 0], table[:, 3], marker="o")
+        plt.plot(table.depth, table.dedx_total, marker="o")
+        plt.plot(table.depth, table.dedx_nuc, marker="o")
+        plt.plot(table.depth, table.dedx_elec, marker="o")
         plt.show()
 
 
@@ -108,8 +107,8 @@ def main():
 
     # Plot for sanity check
     plt.plot(combined[:, 0], combined[:, 3], label="Total", color="k")
-    plt.plot(combined[:, 0], combined[:, 1], label="Nuclear", color="tab:blue")
-    plt.plot(combined[:, 0], combined[:, 2], label="Electronic", color="tab:red")
+    plt.plot(combined[:, 0], combined[:, 2], label="Nuclear", color="tab:blue")
+    plt.plot(combined[:, 0], combined[:, 1], label="Electronic", color="tab:red")
     plt.xlim(np.min(combined[:, 0]), np.max(combined[:, 0]) * 1.05)
     for b in boundaries:
         plt.axvline(b, color="k", ls="--")
