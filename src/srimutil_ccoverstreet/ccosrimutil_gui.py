@@ -27,9 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotting_frame = PlottingFrame()
         self.divider = QtWidgets.QLabel("")
         self.divider.setStyleSheet("border-top: 1px solid black")
-        #self.divider.setLineWidth(5)
-        #self.divider.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        #self.divider.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
 
         self.srim_form.new_srim_table.connect(self.material_form.open_file)
         self.material_form.new_data.connect(self.plotting_frame.plot_table)
@@ -80,11 +77,6 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.ion_row = QtWidgets.QHBoxLayout()
         self.combo_label = QtWidgets.QLabel("Ion:")
         self.ionbox = ElementComboBox()
-        #self.combobox = QtWidgets.QComboBox()
-        #self.combobox.setFont(QFont("Monospace"))
-        #for sym in srim.ELEM_DICT:
-        #    elem = srim.ELEM_DICT[sym]
-        #    self.combobox.addItem(f"{elem.atomic_number:2} {sym:2} {elem.name:20}", sym)
 
         self.ion_row.addWidget(self.combo_label)
         self.ion_row.addWidget(self.ionbox)
@@ -269,7 +261,7 @@ class MaterialForm(QtWidgets.QWidget):
         self.packing_input.setDecimals(6)
         self.packing_input.setValue(1.0)
         self.packing_input.setSingleStep(0.05)
-        self.packing_input.setMinimum(0.05)
+        self.packing_input.setMinimum(0.01)
         self.packing_input.textChanged.connect(self.process_data)
         packing_row.addWidget(packing_label)
         packing_row.addWidget(self.packing_input)
@@ -332,11 +324,7 @@ class MaterialForm(QtWidgets.QWidget):
 
         name = savename[0] if savename[0].endswith(".csv") else savename[0] + ".csv"
 
-
-        np.savetxt(name, np.flip(self.table, axis=0),
-                   header="Depth (um), Electronic Energy Loss (keV/nm), Nuclear Energy Loss (keV/nm), Total Energy Loss (keV/nm), Energy (keV)",
-                   delimiter=",")
-
+        self.table.save_to_file(name)
 
 
 class MplCanvas(FigureCanvasQTAgg):

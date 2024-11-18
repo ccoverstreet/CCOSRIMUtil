@@ -13,6 +13,7 @@ MULTS = {
     "A": 1E-4,
     "um": 1,
     "mm": 1E3,
+    "m": 1E6,
     "keV": 1,
     "MeV": 1E3,
     "GeV": 1e6
@@ -119,6 +120,8 @@ class ConversionConfig:
 @dataclass
 class SRIMTable:
     # Data is reordered so that depth is increasing 
+    rho: float
+    packing_frac: float
     depth: np.array
     dedx_elec: np.array
     dedx_nuc: np.array
@@ -137,6 +140,15 @@ class SRIMTable:
             self.long_straggling,
             self.lat_straggling
         ]).T
+
+    def save_to_file(self, filepath):
+        with open(filepath, "w") as f:
+            f.write(f"# rho = {self.rho}\n")
+            f.write(f"# packing fraction = {self.packing_frac}\n")
+            f.write(f"# Depth [micron], de/dx elec., de/dx nuc., de/dx total, Energy [keV], long. straggling [micron], lat. straggling [micron]\n")
+            for i in range(0, len(self.depth)):
+                f.write(f"{self.depth[i]}, {self.dedx_elec[i]}, {self.dedx_nuc[i]}, {self.dedx_total[i]}, {self.energy[i]}, {self.long_straggling[i]}, {self.lat_straggling[i]}\n")
+                
 
 
 def convert_srim_to_table(srim_data: SRIMData, conv_config: ConversionConfig):
@@ -175,6 +187,7 @@ def convert_srim_to_table(srim_data: SRIMData, conv_config: ConversionConfig):
 
 
     return SRIMTable(
+        conv_config.rho, conv_config.packing,
         depth, elec_dedx, nuclear_dedx,
         elec_dedx + nuclear_dedx, energy,
         long_straggling, lat_straggling
