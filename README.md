@@ -1,14 +1,28 @@
 # CCO Srim Utility
 
-This utility is used to convert the output of SRIM into an energy loss vs. depth format with sensible units.
+This utility provides a python package and GUI for interfacing with SRIM and is used to convert the output of SRIM into an energy loss vs. depth format with sensible units. The GUI can post-process SRIM files with different packing fractions from already run SRIM results and directly run SRIM using the embedded SR Module.
 
-## NEW GUI MODE!!!
+## Installing
 
-- The ccosrimutil now can be run in a GUI mode (PyQt6 + Matplotlib) by not providing any command line arguments (`python ccosrimutil_gui.py`) 
+- Python
+    - `python -m pip install srimutil_ccoverstreet`
+    - Or in developer mode
+        ```
+        git clone https://github.com/ccoverstreet/CCOSRIMUtil
+        cd CCOSRIMUtil
+        python -m pip install -e .
+        ```
+- Download Windows executable
 
-## Using
+## Standalone GUI mode
 
-### SRIM Calculation
+- Python
+    - `python -m srimutil_ccoverstreet`
+- Or Windows exe
+- SR Module setup known to work on Linux and Windows, unsure about Mac (would need wine)
+
+
+### Normal SRIM Calculation
 
 1. Open SRIM
 2. Go to **Stopping/Range Tables**
@@ -23,20 +37,3 @@ This utility is used to convert the output of SRIM into an energy loss vs. depth
 8. You should see a popup asking about output location. Press ok on this window to continue to the SRIM output
 9. You should now see a window containing text with the stopping information. Copy all the text from this window into a text file.
 
-### Using ccosrimutil
-
-1. Download the latest version of this script
-    - For convenience, you can save this script in the same directory as your SRIM output text files
-2. Open the directory with this utility's Python file and your SRIM text files in a terminal
-
-3. Run 
-    - GUI Vesion
-        - Run `python3 ccosrimutil_v5.py` or `python ccosrimutil_v5.py`
-    - CLI Version
-        - run `python3 ccosrimutil_v5.py YOURTEXTFILE.txt -p=PACKINGFRACTION -r=YOURDENSITY --save=somefilename.dat` or `python ccosrimutil_v5.py YOURTEXTFILE.txt -p=PACKINGFRACTION -r=YOURDENSITY --save=somefilename.dat`
-        - Replace `YOURTEXTFILE.txt` with your SRIM text file name
-        - Replace `PACKINGFRACTION ` with a value between 0.0 and 1.0
-        - Replace `YOURDENSITY` with the theoretical density of your composition
-        - Replace `somefilename.dat` to an output name that makes sense. This data file will have energy loss vs. depth and associated ion energy.
-4. The previous command will open up 2 plotting windows with your energy loss results. 
-5. All data used to generate the plots with be saved in the output file specified in the command after `--save=`. This is just a normal text file with the data stored in columns. You can use this file to plot the data however you like.

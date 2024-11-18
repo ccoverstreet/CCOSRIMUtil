@@ -482,6 +482,11 @@ class PlottingFrame(QtWidgets.QWidget):
 
 
 
+def run_gui():
+    app = QtWidgets.QApplication(sys.argv)
+    w = MainWindow()
+    app.exec()
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
