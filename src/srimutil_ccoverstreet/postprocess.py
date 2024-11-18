@@ -35,6 +35,7 @@ def read_file(filename):
         collect = False
         collect_count = 0
         out = []
+        out.append([0, 0, 0, 0, 0, 0])
         conversion = 1.0
         rho = 1.0
 

@@ -1,16 +1,15 @@
 ---Stopping/Range Input Data (Number-format: Period = Decimal Point)
 ---Output File Name
-"/home/coverstreet/research/SRIM-tutorial/20-MeV-Au_MgO.srim"
+"/home/coverstreet/research/SRIM-tutorial/test.srim"
 ---Ion(Z), Ion Mass(u)
-79   196.967
+32   73.92
 ---Target Data: (Solid=0,Gas=1), Density(g/cm3), Compound Corr.
-0 3.6 1
+0 1.0 1
 ---Number of Target Elements
-2
+1
 ---Target Elements: (Z), Target name, Stoich, Target Mass(u)
-12 "Magnesium" 1.0 24.305
-8 "Oxygen" 1.0 15.999
+1 "Hydrogen" 1.0 1.008
 ---Output Stopping Units (1-8)
 5
 ---Ion Energy : E-Min(keV), E-Max(keV)
-10.0 20000.0
+10.0 1000.0
