@@ -14,6 +14,7 @@ MULTS = {
     "um": 1,
     "mm": 1E3,
     "m": 1E6,
+    "km": 1E9,
     "keV": 1,
     "MeV": 1E3,
     "GeV": 1e6

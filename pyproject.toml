@@ -11,7 +11,8 @@ dependencies = [
 	"pillow",
 	"numpy",
 	"matplotlib",
-	"pyqt6"
+	"pyqt6",
+	"scipy"
 ]
 
 [build-system]

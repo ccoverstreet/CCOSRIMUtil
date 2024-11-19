@@ -8,6 +8,8 @@ from . import postprocess as csu # Stands for CCO SRIM Utility
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 import numpy as np
+from dataclasses import dataclass
+from scipy.integrate import simpson
 from . import srim
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -17,6 +19,10 @@ class MainWindow(QtWidgets.QMainWindow):
         central = QtWidgets.QWidget()
 
         self.setWindowTitle("CCO Srim Utility")
+
+        width = 1400
+        height = 800
+        self.setMinimumSize(width, height)
 
         master = QtWidgets.QHBoxLayout()
 
@@ -70,7 +76,6 @@ class SRIMInputForm(QtWidgets.QWidget):
         super().__init__()
 
         self.input_layout = QtWidgets.QVBoxLayout()
-
 
         self.setMaximumWidth(500)
 
@@ -220,10 +225,16 @@ class TargetElementRow(QtWidgets.QWidget):
         return (srim.ELEM_DICT[self.elembox.getSymbol()], stoich)
 
 
+@dataclass
+class GUISRIMTable:
+    """Has some extra parameters that are passed to the plotting window outside of those used by the post-processing module"""
+    table: csu.SRIMTable
+    target_dev: float # fractional deviation used on annotated plot for deviation depth
+    sample_thickness: float # Microns, thickness of sample used for annotated
 
 
 class MaterialForm(QtWidgets.QWidget):
-    new_data = Signal(csu.SRIMTable)
+    new_data = Signal(GUISRIMTable)
 
     def __init__(self):
         super().__init__()
@@ -266,9 +277,36 @@ class MaterialForm(QtWidgets.QWidget):
         packing_row.addWidget(packing_label)
         packing_row.addWidget(self.packing_input)
 
+        target_dev_row = QtWidgets.QHBoxLayout()
+        target_dev_label = QtWidgets.QLabel("Max deviation (%)\n(annotated tab)")
+        self.target_dev_input = QtWidgets.QDoubleSpinBox()
+        self.target_dev_input.setMaximumWidth(100)
+        self.target_dev_input.setDecimals(6)
+        self.target_dev_input.setValue(10)
+        self.target_dev_input.setSingleStep(1)
+        self.target_dev_input.setMinimum(0)
+        self.target_dev_input.textChanged.connect(self.process_data)
+        target_dev_row.addWidget(target_dev_label)
+        target_dev_row.addWidget(self.target_dev_input)
+
+        sample_d_row = QtWidgets.QHBoxLayout()
+        sample_d_label = QtWidgets.QLabel("Sample thickness (micron)\n(annotated tab)")
+        self.sample_d_input = QtWidgets.QDoubleSpinBox()
+        self.sample_d_input.setMaximumWidth(100)
+        self.sample_d_input.setDecimals(6)
+        self.sample_d_input.setValue(12.5)
+        self.sample_d_input.setSingleStep(0.5)
+        self.sample_d_input.setMinimum(0)
+        self.sample_d_input.textChanged.connect(self.process_data)
+        sample_d_row.addWidget(sample_d_label)
+        sample_d_row.addWidget(self.sample_d_input)
+
         input_layout.addLayout(file_row)
         input_layout.addLayout(density_row)
         input_layout.addLayout(packing_row)
+        input_layout.addLayout(target_dev_row)
+        input_layout.addLayout(sample_d_row)
+
 
         process_button = QtWidgets.QPushButton("Process")
         process_button.clicked.connect(self.process_data)
@@ -310,7 +348,11 @@ class MaterialForm(QtWidgets.QWidget):
             return
 
         self.table = csu.convert_srim_to_table(self.srim_data, config)
-        self.new_data.emit(self.table)
+        self.new_data.emit(GUISRIMTable(
+            self.table,
+            self.target_dev_input.value() / 100,
+            self.sample_d_input.value()
+        ))
 
     def open_save_dialog(self):
         if not hasattr(self, "table"):
@@ -368,6 +410,7 @@ class PlottingFrame(QtWidgets.QWidget):
         self.tab_widget = QtWidgets.QTabWidget()
 
         self.dEdx_x = PlotTab()
+        self.dEdx_x_rho_norm = PlotTab()
         self.dEdx_E = PlotTab()
         self.annotated = PlotTab()
         self.deriv = PlotTab()
@@ -375,6 +418,7 @@ class PlottingFrame(QtWidgets.QWidget):
 
         #layout.addWidget(demo)
         self.tab_widget.addTab(self.dEdx_x, "dE/dx(x)")
+        self.tab_widget.addTab(self.dEdx_x_rho_norm, "dE/dx(x)/density")
         self.tab_widget.addTab(self.dEdx_E, "dE/dx(E)")
         self.tab_widget.addTab(self.annotated, "dE/dx(x) annotated")
         self.tab_widget.addTab(self.deriv, "(dE/dx(x))'")
@@ -389,7 +433,9 @@ class PlottingFrame(QtWidgets.QWidget):
         page.fig.tight_layout()
         page.update_plot()
 
-    def plot_table(self, data):
+    def plot_table(self, data_gui):
+        data = data_gui.table # Extract SRIMTable for easier use
+
         # dEdx(x) plot
         self.dEdx_x.axes.clear()
         self.dEdx_x.axes.plot(data.depth, data.dedx_elec, color="tab:red", label="Electronic dE/dx")
@@ -404,6 +450,26 @@ class PlottingFrame(QtWidgets.QWidget):
         #self.dEdx_x.fig.tight_layout()
         self.dEdx_x.fig.tight_layout()
         self.dEdx_x.update_plot()
+
+        # dE/dx(x) / rho 
+        mult = 1 / data.rho 
+        #mult = 1E7/data.rho
+        #mult = 1E-3 * 1E7 / data.rho
+
+        self.dEdx_x_rho_norm.axes.clear()
+        self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_elec*mult, color="tab:red", label="Electronic dE/dx")
+        self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_nuc*mult, color="tab:blue", label="Nuclear dE/dx")
+        self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_total*mult, color="k", label="Total dE/dx")
+        self.dEdx_x_rho_norm.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
+        self.dEdx_x_rho_norm.axes.set_ylabel(r"dE/dx [keV/nm$\cdot$cm$^3$/g]", fontsize=16)
+        self.dEdx_x_rho_norm.axes.tick_params(axis="both", which="major", labelsize=12)
+        self.dEdx_x_rho_norm.axes.set_xlim(0, np.max(data.depth)* 1.05)
+        self.dEdx_x_rho_norm.axes.set_ylim(0, np.max(data.dedx_total) * mult * 1.05)
+        self.dEdx_x_rho_norm.axes.legend(fontsize=12)
+        #self.dEdx_x.fig.tight_layout()
+        self.dEdx_x_rho_norm.fig.tight_layout()
+        self.dEdx_x_rho_norm.update_plot()
+
 
         # dEdx(E) plot
         self.dEdx_E.axes.clear()
@@ -428,12 +494,12 @@ class PlottingFrame(QtWidgets.QWidget):
         dEdx_0 = data.dedx_total[0]
         dev_depth = 0
 
-        # Find depth where stopping is more than 10%
+        # Find depth where stopping is more than target value
         # We linearly interpolate to find the exact point
         for i, val in enumerate(data.dedx_total):
             print(val, dEdx_0)
             delta = np.abs(val - dEdx_0) / dEdx_0
-            if delta > 0.1:
+            if delta > data_gui.target_dev:
                 # This should never trigger in a case where array length is 0
                 # which prevents invalid access.
                 y1 = data.dedx_total[i]
@@ -453,8 +519,34 @@ class PlottingFrame(QtWidgets.QWidget):
                 break
 
 
+        # Find average energy loss for specified sample thickness
+        # We integrate using Simpson's rule (scipy implementation)
+        # and divide by thickness
+        # We'll interpolate for value exactly at the specified thickness
+        ind_cut = np.argmax(data.depth > data_gui.sample_thickness)
+        interp_y = np.interp(data_gui.sample_thickness,
+                             data.depth,
+                             data.dedx_total)
+        avg_x = np.concatenate((data.depth[:ind_cut],
+                                np.array([data_gui.sample_thickness])))
+        avg_y = np.concatenate((data.dedx_total[:ind_cut],
+                                np.array([interp_y])))
+
+        self.annotated.axes.plot(avg_x, avg_y, marker="x")
+
+        dedx_avg_sample = simpson(avg_y, avg_x) / data_gui.sample_thickness
+        
+        print(avg_x)
+        print(avg_y)
+
+        
+
+
         self.annotated.axes.plot(data.depth, data.dedx_total, color="k", label="Total dE/dx")
-        self.annotated.axes.axvline(dev_depth, color="k", ls="--", label=f"10% dEdx(x) deviation ({round(dev_depth, 2)} " + r"$\mu m$)")
+        self.annotated.axes.axvline(dev_depth, color="k", ls="--", label=f"{round(data_gui.target_dev * 100, 3)}% dEdx(x) deviation = {round(dev_depth, 3)} " + r"$\mu m$")
+        self.annotated.axes.axvline(data.depth[-1], color="k", ls=":", label=f"Ion range = {round(data.depth[-1], 3)} " + r"$\mu m$")
+        self.annotated.axes.axvline(data_gui.sample_thickness, color="k", ls="-", label=f"Sample thickness = {round(data_gui.sample_thickness, 3)} " + r"$\mu m$")
+        self.annotated.axes.plot([], label=f"Average dE/dx for sample = {round(dedx_avg_sample, 3)} keV/nm", ls="", marker="")
         self.annotated.axes.set_xlabel(r"Energy [keV]", fontsize=16)
         self.annotated.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
         self.annotated.axes.tick_params(axis="both", which="major", labelsize=12)
@@ -475,7 +567,7 @@ class PlottingFrame(QtWidgets.QWidget):
 
         # E(x)
         self.E_x.axes.clear()
-        self.E_x.axes.plot(data.depth, data.dedx_total)
+        self.E_x.axes.plot(data.depth, data.energy)
         self.E_x.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
         self.E_x.axes.set_ylabel(r"Energy (keV)", fontsize=16)
         self.E_x.update_plot()
