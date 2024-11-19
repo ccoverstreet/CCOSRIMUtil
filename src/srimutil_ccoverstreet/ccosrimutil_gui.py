@@ -231,6 +231,7 @@ class GUISRIMTable:
     table: csu.SRIMTable
     target_dev: float # fractional deviation used on annotated plot for deviation depth
     sample_thickness: float # Microns, thickness of sample used for annotated
+    norm_MeV_cm2g: bool # Change the units of the density normalization. True is MeV-cm^2/g, false is (keV/nm)(cm^3)/(g)
 
 
 class MaterialForm(QtWidgets.QWidget):
@@ -301,12 +302,24 @@ class MaterialForm(QtWidgets.QWidget):
         sample_d_row.addWidget(sample_d_label)
         sample_d_row.addWidget(self.sample_d_input)
 
+        density_units_row = QtWidgets.QHBoxLayout()
+        self.button_group = QtWidgets.QButtonGroup()
+        self.density_units_MeVcm2g_button = QtWidgets.QRadioButton("MeV-cm\u00b2/g")
+        self.density_units_MeVcm2g_button.setChecked(True)
+        self.density_units_keVnmcm3g_button = QtWidgets.QRadioButton("(keV/nm)(cm\u00b3/g)")
+        self.button_group.addButton(self.density_units_MeVcm2g_button)
+        self.button_group.addButton(self.density_units_keVnmcm3g_button)
+        self.button_group.buttonToggled.connect(self.process_data)
+
+        density_units_row.addWidget(self.density_units_MeVcm2g_button)
+        density_units_row.addWidget(self.density_units_keVnmcm3g_button)
+
         input_layout.addLayout(file_row)
         input_layout.addLayout(density_row)
         input_layout.addLayout(packing_row)
         input_layout.addLayout(target_dev_row)
         input_layout.addLayout(sample_d_row)
-
+        input_layout.addLayout(density_units_row)
 
         process_button = QtWidgets.QPushButton("Process")
         process_button.clicked.connect(self.process_data)
@@ -316,9 +329,7 @@ class MaterialForm(QtWidgets.QWidget):
         save_button.clicked.connect(self.open_save_dialog)
         input_layout.addWidget(save_button)
 
-
         input_layout.addStretch()
-
 
         self.setLayout(input_layout)
 
@@ -351,7 +362,8 @@ class MaterialForm(QtWidgets.QWidget):
         self.new_data.emit(GUISRIMTable(
             self.table,
             self.target_dev_input.value() / 100,
-            self.sample_d_input.value()
+            self.sample_d_input.value(),
+            self.density_units_MeVcm2g_button.isChecked()
         ))
 
     def open_save_dialog(self):
@@ -452,16 +464,18 @@ class PlottingFrame(QtWidgets.QWidget):
         self.dEdx_x.update_plot()
 
         # dE/dx(x) / rho 
-        mult = 1 / data.rho 
+
+        mult = 1E-3 * 1E7 / data.rho if data_gui.norm_MeV_cm2g else 1 / data.rho 
+        dens_norm_ylabel = r"dE/dx [MeV$\cdot$cm$^2$/g]" if data_gui.norm_MeV_cm2g else "dE/dx [(keV/nm)(cm$^3$/g)]"
         #mult = 1E7/data.rho
-        #mult = 1E-3 * 1E7 / data.rho
+        #mult = 
 
         self.dEdx_x_rho_norm.axes.clear()
         self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_elec*mult, color="tab:red", label="Electronic dE/dx")
         self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_nuc*mult, color="tab:blue", label="Nuclear dE/dx")
         self.dEdx_x_rho_norm.axes.plot(data.depth, data.dedx_total*mult, color="k", label="Total dE/dx")
         self.dEdx_x_rho_norm.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
-        self.dEdx_x_rho_norm.axes.set_ylabel(r"dE/dx [keV/nm$\cdot$cm$^3$/g]", fontsize=16)
+        self.dEdx_x_rho_norm.axes.set_ylabel(dens_norm_ylabel, fontsize=16)
         self.dEdx_x_rho_norm.axes.tick_params(axis="both", which="major", labelsize=12)
         self.dEdx_x_rho_norm.axes.set_xlim(0, np.max(data.depth)* 1.05)
         self.dEdx_x_rho_norm.axes.set_ylim(0, np.max(data.dedx_total) * mult * 1.05)
