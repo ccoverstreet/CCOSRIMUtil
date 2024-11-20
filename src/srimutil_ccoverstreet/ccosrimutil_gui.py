@@ -121,6 +121,8 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.density_label = QtWidgets.QLabel("Density (g/cm<sup>3</sup>):")
         self.density_input = QtWidgets.QDoubleSpinBox()
         self.density_input.setValue(1.0)
+        self.density_input.setDecimals(6)
+        self.density_input.setMinimum(0.000001)
         self.density_row.addWidget(self.density_label)
         self.density_row.addWidget(self.density_input)
 
@@ -261,7 +263,7 @@ class MaterialForm(QtWidgets.QWidget):
         self.rho_input.setDecimals(6)
         self.rho_input.setValue(1.00)
         self.rho_input.setSingleStep(0.01)
-        self.rho_input.setMinimum(0.01)
+        self.rho_input.setMinimum(0.000001)
         self.rho_input.textChanged.connect(self.process_data)
         density_row.addWidget(rho_label)
         density_row.addWidget(self.rho_input)
