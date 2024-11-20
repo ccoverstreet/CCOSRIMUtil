@@ -19,7 +19,12 @@ This utility provides a python package and GUI for interfacing with SRIM and is 
 - Python
     - `python -m srimutil_ccoverstreet`
 - Or Windows executable
-- SR Module setup known to work on Linux and Windows, unsure about Mac (would need wine)
+- SR Module embedded in package known to work on Linux and Windows, unsure about Mac (would need wine)
+    - Even if SR Module does not work on a system, the post-processing portion (bottomm left) can be used to import existing SRIM output files
+- Can specify input parameters for SRIM Tables and directly run SRIM
+- Can read and post-process output SRIM Tables to consistent units and converts to energy loss as a function of depth
+    - Can specify packing fraction (result of porosity), density, and visualization/calculation parameters for the "annotated" plotting tab
+- Results can be easily exported from the post-processing section to CSV files which can be conveniently used in other software
 
 ![GUI in use](img/GUI-demo.png)
 
