@@ -18,7 +18,9 @@ This utility provides a python package and GUI for interfacing with SRIM and is 
 
 - Python
     - `python -m srimutil_ccoverstreet`
-- Or Windows exe
+- Or Windows executable
 - SR Module setup known to work on Linux and Windows, unsure about Mac (would need wine)
+
+![GUI in use](img/GUI-demo.png)
 
 
