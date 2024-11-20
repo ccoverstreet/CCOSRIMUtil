@@ -550,7 +550,7 @@ class PlottingFrame(QtWidgets.QWidget):
 
         self.annotated.axes.plot(avg_x, avg_y, marker="x")
 
-        dedx_avg_sample = simpson(avg_y, avg_x) / data_gui.sample_thickness
+        dedx_avg_sample = simpson(avg_y, x=avg_x) / data_gui.sample_thickness
         
         print(avg_x)
         print(avg_y)
