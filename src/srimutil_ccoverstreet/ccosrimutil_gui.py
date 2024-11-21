@@ -11,6 +11,7 @@ import numpy as np
 from dataclasses import dataclass
 from scipy.integrate import simpson
 from . import srim
+from . import chemicalparser
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -50,7 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 class ElementComboBox(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, selected_element="H"):
         super().__init__()
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -61,6 +62,9 @@ class ElementComboBox(QtWidgets.QWidget):
         for sym in srim.ELEM_DICT:
             elem = srim.ELEM_DICT[sym]
             self.combobox.addItem(f"{elem.atomic_number:2} {sym:2} {elem.name:20}", sym)
+
+        ind = self.combobox.findData(selected_element)
+        self.combobox.setCurrentIndex(ind)
 
         self.layout.addWidget(self.combobox)
 
@@ -103,6 +107,13 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.max_energy_row.addWidget(self.max_energy_label)
         self.max_energy_row.addWidget(self.max_energy_input)
 
+        self.formula_row = QtWidgets.QHBoxLayout()
+        self.formula_input = QtWidgets.QLineEdit()
+        self.add_formula_button = QtWidgets.QPushButton("Add formula")
+        self.add_formula_button.clicked.connect(self.add_formula)
+        self.formula_row.addWidget(self.formula_input)
+        self.formula_row.addWidget(self.add_formula_button)
+
         self.list_control_row = QtWidgets.QHBoxLayout()
         self.add_elem_button = QtWidgets.QPushButton("Add element")
         self.add_elem_button.clicked.connect(self.add_element)
@@ -112,7 +123,7 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.list_control_row.addWidget(self.delete_elem_button)
 
         self.elem_list = QtWidgets.QListWidget()
-        self.add_element()
+        #self.add_element()
         #item = QtWidgets.QListWidgetItem()
         #self.elem_list.addItem(item)
         #self.elem_list.setItemWidget(item, TargetElementRow())
@@ -139,12 +150,27 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.input_layout.addLayout(self.ion_row)
         self.input_layout.addLayout(self.min_energy_row)
         self.input_layout.addLayout(self.max_energy_row)
+        self.input_layout.addLayout(self.formula_row)
         self.input_layout.addLayout(self.list_control_row)
         self.input_layout.addWidget(self.elem_list)
         self.input_layout.addLayout(self.density_row)
         self.input_layout.addWidget(self.run_srim_button)
 
         self.setLayout(self.input_layout)
+
+    def add_formula(self):
+        text = self.formula_input.text()
+        print(text)
+        elems = chemicalparser.parse_formula(text)
+        print(elems)
+
+        for e in elems:
+            new_item = QtWidgets.QListWidgetItem()
+            new_item.setSizeHint(QSize(30, 60))
+            self.elem_list.addItem(new_item)
+            self.elem_list.setItemWidget(new_item, TargetElementRow(element=e[0], stoich=e[1]))
+
+        pass 
 
     def add_element(self):
         new_item = QtWidgets.QListWidgetItem()
@@ -177,7 +203,7 @@ class SRIMInputForm(QtWidgets.QWidget):
 
         density = self.density_input.value()
 
-        srim_filename_parts = QtWidgets.QFileDialog.getSaveFileName(self, 'Save table', "", "SRIM Table File (*.srim);;")
+        srim_filename_parts = QtWidgets.QFileDialog.getSaveFileName(self, 'Save SRIM Output Table', "", "SRIM Output File (*.srim);;")
 
         if srim_filename_parts[0] == "": 
             return
@@ -204,13 +230,12 @@ class SRIMInputForm(QtWidgets.QWidget):
         self.new_srim_table.emit(srim_filename)
 
 
-
 class TargetElementRow(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, element="H", stoich=1.0):
         super().__init__()
-        self.elembox = ElementComboBox()
+        self.elembox = ElementComboBox(selected_element=element)
         self.stoich_input = QtWidgets.QDoubleSpinBox()
-        self.stoich_input.setValue(1.0)
+        self.stoich_input.setValue(stoich)
         self.stoich_input.setMaximumWidth(80)
         self.stoich_input.setMaximum(1000)
 
