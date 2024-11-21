@@ -15,13 +15,13 @@ def tokenize(formula):
             tokens.append(c)
             i += 1
         elif c.isupper():
-            if formula[i + 1].islower():
+            if i+1 < len(formula) and formula[i + 1].islower():
                 tokens.append(formula[i:i+2])
-                if formula[i + 2] not in "1234567890":
+                if i+2 >= len(formula) or formula[i + 2] not in "1234567890":
                     tokens.append(1)
                 i += 2
                 continue
-            elif formula[i + 1] not in "1234567890":
+            elif i+1 >= len(formula) or formula[i + 1] not in "1234567890":
                 tokens.append(formula[i])
                 tokens.append(1)
                 i += 1
