@@ -1,2 +1,3 @@
 include src/srimutil_ccoverstreet/srim/SRModule.exe
 include src/srimutil_ccoverstreet/srim/*.dat
+include src/srimutil_ccoverstreet/srim/msvbvm50.dll
