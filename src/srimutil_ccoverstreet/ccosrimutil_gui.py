@@ -577,9 +577,11 @@ class PlottingFrame(QtWidgets.QWidget):
 
         dedx_avg_sample = simpson(avg_y, x=avg_x) / data_gui.sample_thickness
         
-        print(avg_x)
-        print(avg_y)
+        # Calculate entry and exit energies for sample
+        E0_sample = data.energy[0]
+        E1_sample = np.interp(data_gui.sample_thickness, data.depth, data.energy)
 
+        print(E0_sample, E1_sample)
         
 
 
@@ -588,6 +590,7 @@ class PlottingFrame(QtWidgets.QWidget):
         self.annotated.axes.axvline(data.depth[-1], color="k", ls=":", label=f"Ion range = {round(data.depth[-1], 3)} " + r"$\mu m$")
         self.annotated.axes.axvline(data_gui.sample_thickness, color="k", ls="-", label=f"Sample thickness = {round(data_gui.sample_thickness, 3)} " + r"$\mu m$")
         self.annotated.axes.plot([], label=f"Average dE/dx for sample = {round(dedx_avg_sample, 3)} keV/nm", ls="", marker="")
+        self.annotated.axes.plot([], label=r"$E_{0,sample}$ = " + str(round(E0_sample, 2)) + r"; $E_{1,sample}$ = " + str(round(E1_sample, 2)), ls="", marker="")
         self.annotated.axes.set_xlabel(r"Energy [keV]", fontsize=16)
         self.annotated.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
         self.annotated.axes.tick_params(axis="both", which="major", labelsize=12)
