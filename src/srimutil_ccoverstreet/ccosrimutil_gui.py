@@ -235,8 +235,9 @@ class TargetElementRow(QtWidgets.QWidget):
         super().__init__()
         self.elembox = ElementComboBox(selected_element=element)
         self.stoich_input = QtWidgets.QDoubleSpinBox()
+        self.stoich_input.setDecimals(6)
         self.stoich_input.setValue(stoich)
-        self.stoich_input.setMaximumWidth(80)
+        self.stoich_input.setMaximumWidth(90)
         self.stoich_input.setMaximum(1000)
 
         self.layout = QtWidgets.QHBoxLayout()
