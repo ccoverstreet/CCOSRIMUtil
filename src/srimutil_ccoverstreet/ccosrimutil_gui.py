@@ -25,6 +25,24 @@ class MainWindow(QtWidgets.QMainWindow):
         height = 800
         self.setMinimumSize(width, height)
 
+        tabs = QtWidgets.QTabWidget()
+
+        tabs.addTab(SingleMaterialPage(), "Single Material")
+        tabs.addTab(LayerPage(), "Layered System")
+        
+        #layout = QtWidgets.QHBoxLayout()
+        #layout.addWidget(SingleMaterialPage())
+        self.setCentralWidget(tabs)
+        self.show()
+
+    def run_srim_layer_calc(self):
+        pass
+
+
+class SingleMaterialPage(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+
         master = QtWidgets.QHBoxLayout()
 
         self.input_box = QtWidgets.QVBoxLayout()
@@ -45,9 +63,98 @@ class MainWindow(QtWidgets.QMainWindow):
         master.addLayout(self.input_box)
         master.addWidget(self.plotting_frame)
 
-        central.setLayout(master)
-        self.setCentralWidget(central)
-        self.show()
+        self.setLayout(master)
+
+class LayerPage(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.master_layout = QtWidgets.QHBoxLayout()
+
+        self.input_box = QtWidgets.QVBoxLayout()
+
+        self.setup_form = LayerForm()
+        self.input_box.addWidget(self.setup_form)
+
+        self.PLACEHOLDER = QtWidgets.QLabel("ASDASDASD")
+
+        self.master_layout.addLayout(self.input_box)
+        self.master_layout.addWidget(self.PLACEHOLDER)
+
+        self.setLayout(self.master_layout)
+        
+
+
+class LayerForm(QtWidgets.QWidget):
+
+    def __init__(self):
+        super().__init__()
+
+        column_layout = QtWidgets.QVBoxLayout()
+
+        controls_layout = QtWidgets.QHBoxLayout()
+
+        self.add_layer_button = QtWidgets.QPushButton("Add Layer")
+        self.add_layer_button.clicked.connect(self.add_layer)
+
+        self.delete_layer_button = QtWidgets.QPushButton("Delete Layer")
+        self.delete_layer_button.clicked.connect(self.delete_layer)
+
+        self.layer_list = QtWidgets.QListWidget()
+
+        controls_layout.addWidget(self.add_layer_button)
+        controls_layout.addWidget(self.delete_layer_button)
+
+        column_layout.addLayout(controls_layout)
+        column_layout.addWidget(self.layer_list)
+
+        self.setLayout(column_layout)
+
+    def add_layer(self):
+        new_item = QtWidgets.QListWidgetItem()
+        new_item.setSizeHint(QSize(30, 60))
+        self.layer_list.addItem(new_item)
+        self.layer_list.setItemWidget(new_item, LayerItem())
+
+    def delete_layer(self):
+        items = self.layer_list.selectedItems()
+        for x in items:
+            row = self.layer_list.indexFromItem(x)
+            wid = self.layer_list.takeItem(row.row())
+            del wid
+
+
+
+class LayerItem(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QtWidgets.QHBoxLayout()
+
+        self.formula_entry = QtWidgets.QLineEdit()
+        self.formula_entry.setText("Al")
+
+        self.density_entry = QtWidgets.QDoubleSpinBox()
+        self.density_entry.setValue(2.70)
+        self.density_entry.setDecimals(6)
+        self.density_entry.setMinimum(0.000001)
+
+        self.density_unit = QtWidgets.QLabel("g/cm<sup>3</sup>")
+
+        self.thickness_entry = QtWidgets.QDoubleSpinBox()
+        self.thickness_entry.setValue(1.0)
+        self.thickness_entry.setDecimals(6)
+        self.thickness_entry.setMinimum(0.000001)
+        self.thickness_entry.setMaximum(1E6)
+
+        self.thickness_unit = QtWidgets.QLabel("μm")
+
+        self.layout.addWidget(self.formula_entry)
+        self.layout.addWidget(self.density_entry)
+        self.layout.addWidget(self.density_unit)
+        self.layout.addWidget(self.thickness_entry)
+        self.layout.addWidget(self.thickness_unit)
+
+        self.setLayout(self.layout)
 
 
 class ElementComboBox(QtWidgets.QWidget):
@@ -72,6 +179,7 @@ class ElementComboBox(QtWidgets.QWidget):
 
     def getSymbol(self):
         return self.combobox.currentData()
+
 
 class SRIMInputForm(QtWidgets.QWidget):
     new_srim_table = Signal(str)
