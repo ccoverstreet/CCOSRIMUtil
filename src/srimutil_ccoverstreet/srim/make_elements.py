@@ -26,6 +26,22 @@ class ElementData():
     gasdens: float
     gas_density: float
 
+    def to_json(self):
+        return {
+            "atomic_number": self.atomic_number,
+            "symbol": self.symbol,
+            "name": self.name,
+            "MAI_mass": self.MAI_mass,
+            "MAI_weight": self.MAI_weight,
+            "natural_weight": self.natural_weight,
+            "density": self.density,
+            "atomic_density": self.atomic_density,
+            "fermi_velocity": self.fermi_velocity,
+            "heat_subl": self.heat_subl,
+            "gasdens": self.gasdens,
+            "gas_density": self.gas_density
+        }
+
 """
 
 with open("elements.py", "w") as f:

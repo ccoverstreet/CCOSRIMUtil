@@ -3,6 +3,7 @@ from PyQt6.QtCore import pyqtSignal as Signal
 from PyQt6.QtCore import Qt,QSize 
 from PyQt6.QtGui import QFont
 from dataclasses import dataclass
+import json
 from . import util_gui
 from . import chemicalparser
 from . import srim
@@ -45,7 +46,10 @@ class LayerPage(QtWidgets.QWidget):
         layers = self.setup_form.get_layers()
         print(ion, layers)
 
-        srim.run_srim_layered(ion, layers, srim_dirname_parts)
+        proj = srim.run_srim_layered(ion, layers, srim_dirname_parts)
+
+        with open("test.json", "w") as f:
+            f.write(json.dumps(proj.to_json()))
         
 
 class LayerForm(QtWidgets.QWidget):

@@ -17,6 +17,22 @@ class ElementData():
     gasdens: float
     gas_density: float
 
+    def to_json(self):
+        return {
+            "atomic_number": self.atomic_number,
+            "symbol": self.symbol,
+            "name": self.name,
+            "MAI_mass": self.MAI_mass,
+            "MAI_weight": self.MAI_weight,
+            "natural_weight": self.natural_weight,
+            "density": self.density,
+            "atomic_density": self.atomic_density,
+            "fermi_velocity": self.fermi_velocity,
+            "heat_subl": self.heat_subl,
+            "gasdens": self.gasdens,
+            "gas_density": self.gas_density
+        }
+
 ELEM_DICT = {
 "H": ElementData(1, "H", "Hydrogen", 1, 1.008, 1.008, .0715, 4.271E22, 1.031, .00, 8.990E-5, 5.374E19),
 "He": ElementData(2, "He", "Helium", 4, 4.003, 4.003, .1259, 1.894E22, .160, .00, 1.787E-4, 2.690E19),

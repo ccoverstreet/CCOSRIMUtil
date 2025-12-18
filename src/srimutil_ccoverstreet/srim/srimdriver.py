@@ -11,9 +11,11 @@ MODULE_PATH = importlib.resources.files(__package__)
 print(MODULE_PATH)
 
 
-class TargetType(Enum):
+class TargetType(int, Enum):
     SOLID = 0
     GAS = 1
+
+    
 
 @dataclass()
 class SRIMLayer:
@@ -24,6 +26,17 @@ class SRIMLayer:
     elements: [ElementData]
     thickness: float # thickness in micrometers
     name: str
+
+    def to_json(self):
+        return {
+            "target_type": self.target_type,
+            "density": self.density,
+            "compound_corr": self.compound_corr,
+            "stoich": self.stoich,
+            "elements": list(map(lambda e: e.to_json(), self.elements)),
+            "thickness": self.thickness,
+            "name": self.name
+        }
 
 
 @dataclass()
@@ -301,6 +314,37 @@ class IonConfigLayer:
     ion: ElementData
     energy: float
 
+    def to_json(self):
+        return {
+            "element": self.ion.to_json(),
+            "energy": self.energy
+        }
+
+@dataclass 
+class SRIMLayerResult:
+    combined: np.array # Table array
+    boundaries: np.array # boundaries between
+
+    def to_json(self):
+        return {
+            "combined": self.combined,
+            "boundaries": self.boundaries
+        }
+
+
+@dataclass
+class SRIMLayerProject:
+    ion: IonConfigLayer
+    layers: [SRIMLayer]
+    result: SRIMLayerResult
+
+    def to_json(self):
+        return {
+            "ion": self.ion.to_json(),
+            "layers": list(map(lambda l: l.to_json(), self.layers)),
+            "result": self.result.to_json()
+        }
+
 def run_srim_layered(ion_config: IonConfigLayer, layers: [SRIMLayer], output_dir: str):
     E_0 = ion_config.energy  
     prev_x = 0
@@ -357,6 +401,14 @@ def run_srim_layered(ion_config: IonConfigLayer, layers: [SRIMLayer], output_dir
         # Increment values for next loop
         prev_x += depth
 
+        boundaries.append(prev_x)
+
+
 
     combined = np.vstack(chunks)
     np.savetxt(output_dir + "/" + "combined.dat", combined)
+
+    proj = SRIMLayerProject(ion_config, layers,
+                     SRIMLayerResult(combined, np.array(boundaries)))
+
+    return proj
