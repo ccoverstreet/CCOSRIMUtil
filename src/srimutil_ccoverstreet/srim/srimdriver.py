@@ -327,8 +327,8 @@ class SRIMLayerResult:
 
     def to_json(self):
         return {
-            "combined": self.combined,
-            "boundaries": self.boundaries
+            "combined": list(self.combined),
+            "boundaries": list(self.boundaries)
         }
 
 
@@ -409,6 +409,6 @@ def run_srim_layered(ion_config: IonConfigLayer, layers: [SRIMLayer], output_dir
     np.savetxt(output_dir + "/" + "combined.dat", combined)
 
     proj = SRIMLayerProject(ion_config, layers,
-                     SRIMLayerResult(combined, np.array(boundaries)))
+                     SRIMLayerResult(combined.tolist(), np.array(boundaries).tolist()))
 
     return proj
