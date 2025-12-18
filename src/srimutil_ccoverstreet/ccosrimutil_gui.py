@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt,QSize
 from PyQt6.QtGui import QFont
 import sys
 import matplotlib.pyplot as plt
-from . import postprocess as csu # Stands for CCO SRIM Utility
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 import numpy as np
@@ -256,7 +255,7 @@ class TargetElementRow(QtWidgets.QWidget):
 @dataclass
 class GUISRIMTable:
     """Has some extra parameters that are passed to the plotting window outside of those used by the post-processing module"""
-    table: csu.SRIMTable
+    table: srim.SRIMTable
     target_dev: float # fractional deviation used on annotated plot for deviation depth
     sample_thickness: float # Microns, thickness of sample used for annotated
     norm_MeV_cm2g: bool # Change the units of the density normalization. True is MeV-cm^2/g, false is (keV/nm)(cm^3)/(g)
@@ -372,7 +371,7 @@ class MaterialForm(QtWidgets.QWidget):
         print(filename)
         self.file_label.setText(f"Current file: {filename}")
         try:
-            self.srim_data = csu.read_file(filename)
+            self.srim_data = srim.read_srim_output(filename)
         except Exception as e:
             QtWidgets.QMessageBox.warning(self, "CCO SRIM Utility Error", f"The selected file is not a valid SRIM output file.\n{e}")
             return
@@ -381,12 +380,12 @@ class MaterialForm(QtWidgets.QWidget):
         self.process_data()
 
     def process_data(self):
-        config = csu.ConversionConfig(self.rho_input.value(), self.packing_input.value())
+        config = srim.ConversionConfig(self.rho_input.value(), self.packing_input.value())
         if not hasattr(self, "srim_data"):
             QtWidgets.QMessageBox.warning(self, "CCO SRIM Utility Error", "Please select a SRIM file to process.")
             return
 
-        self.table = csu.convert_srim_to_table(self.srim_data, config)
+        self.table = srim.convert_srim_to_table(self.srim_data, config)
         self.new_data.emit(GUISRIMTable(
             self.table,
             self.target_dev_input.value() / 100,
