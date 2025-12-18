@@ -67,11 +67,6 @@ class SingleMaterialPage(QtWidgets.QWidget):
         self.setLayout(master)
 
 
-
-
-
-
-
 class SRIMInputForm(QtWidgets.QWidget):
     new_srim_table = Signal(str)
 

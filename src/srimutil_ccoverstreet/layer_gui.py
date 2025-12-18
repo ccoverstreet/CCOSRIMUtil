@@ -33,10 +33,19 @@ class LayerPage(QtWidgets.QWidget):
         self.setLayout(self.master_layout)
 
     def run_srim_layer(self):
+
+        srim_dirname_parts = QtWidgets.QFileDialog.getExistingDirectory(self, 'Save SRIM Output Table')
+
+        if srim_dirname_parts == "":
+            return
+
+
         ion = self.ion_form.getIonConfig()
 
         layers = self.setup_form.get_layers()
         print(ion, layers)
+
+        srim.run_srim_layered(ion, layers, srim_dirname_parts)
         
 
 class LayerForm(QtWidgets.QWidget):
@@ -119,8 +128,8 @@ class LayerItem(QtWidgets.QWidget):
 
     def get_layer_data(self):
         parsed = chemicalparser.parse_formula(self.formula_entry.text())
-        elems = map(lambda x: x[0], parsed)
-        stoichs = map(lambda x: x[1], parsed)
+        elems = list(map(lambda x: srim.ELEM_DICT[x[0]], parsed))
+        stoichs = list(map(lambda x: x[1], parsed))
 
         return srim.SRIMLayer(
             srim.TargetType.SOLID,
@@ -128,14 +137,11 @@ class LayerItem(QtWidgets.QWidget):
             1,
             stoichs,
             elems,
-            self.thickness_entry.value()
+            self.thickness_entry.value(),
+            self.formula_entry.text()
         )
 
 
-@dataclass
-class IonConfig:
-    ion: str 
-    energy: float
 
 
 class IonConfigForm(QtWidgets.QWidget):
@@ -168,6 +174,6 @@ class IonConfigForm(QtWidgets.QWidget):
         self.setLayout(self.input_layout)
 
     def getIonConfig(self):
-        return IonConfig(self.ionbox.getSymbol(), self.max_energy_input.value())
+        return srim.IonConfigLayer(srim.ELEM_DICT[self.ionbox.getSymbol()], self.max_energy_input.value())
 
 
