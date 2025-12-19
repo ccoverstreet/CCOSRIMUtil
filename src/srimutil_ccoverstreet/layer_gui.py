@@ -3,6 +3,7 @@ from PyQt6.QtCore import pyqtSignal as Signal
 from PyQt6.QtCore import Qt,QSize 
 from PyQt6.QtGui import QFont
 from dataclasses import dataclass
+import numpy as np
 import json
 from . import util_gui
 from . import chemicalparser
@@ -12,7 +13,7 @@ class LayerPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
-        self.master_layout = QtWidgets.QHBoxLayout()
+        self.master_layout = QtWidgets.QSplitter()
 
         self.input_box = QtWidgets.QVBoxLayout()
 
@@ -25,13 +26,16 @@ class LayerPage(QtWidgets.QWidget):
         self.input_box.addWidget(self.ion_form)
         self.input_box.addWidget(self.run_srim_layer_button)
 
+        self.layer_plot = util_gui.PlotTab()
 
-        self.PLACEHOLDER = QtWidgets.QLabel("ASDASDASD")
+        self.input_wrapper = QtWidgets.QWidget()
+        self.input_wrapper.setLayout(self.input_box)
+        self.master_layout.addWidget(self.input_wrapper)
+        self.master_layout.addWidget(self.layer_plot)
 
-        self.master_layout.addLayout(self.input_box)
-        self.master_layout.addWidget(self.PLACEHOLDER)
-
-        self.setLayout(self.master_layout)
+        self.wrapper = QtWidgets.QHBoxLayout()
+        self.wrapper.addWidget(self.master_layout)
+        self.setLayout(self.wrapper)
 
     def run_srim_layer(self):
 
@@ -47,10 +51,42 @@ class LayerPage(QtWidgets.QWidget):
         print(ion, layers)
 
         proj = srim.run_srim_layered(ion, layers, srim_dirname_parts)
+        self.proj = proj
 
         with open("test.json", "w") as f:
             f.write(json.dumps(proj.to_json()))
+
+        # Display plot results
+        self.plot_project()
+
+    def plot_project(self):
+        self.layer_plot.axes.clear()
+        proj = self.proj
         
+        combined = np.array(proj.result.combined)
+
+        self.layer_plot.axes.plot(combined[:, 0], combined[:, 3], color="k")
+        self.layer_plot.axes.plot(combined[:, 0], combined[:, 1], color="tab:red")
+        self.layer_plot.axes.plot(combined[:, 0], combined[:, 2], color="tab:blue")
+
+        bounds = proj.result.boundaries
+        for i, b in enumerate(bounds):
+
+            self.layer_plot.axes.axvline(b, color="k", ls="--")
+            y_pos = np.max(combined[:, 3]) / 2
+
+            print(bounds, b/2, y_pos)
+            if i == 0:
+                self.layer_plot.axes.annotate(proj.layers[i].name, (b / 2, y_pos), ha="center")
+            else:
+                self.layer_plot.axes.annotate(proj.layers[i].name, ((bounds[i] + bounds[i-1])/ 2, y_pos), ha="center")
+
+
+        self.layer_plot.axes.set_ylim(0, np.max(combined[:, 3]) * 1.05)
+        self.layer_plot.axes.set_xlim(0, max(np.max(combined[:, 0]), bounds[-1]) * 1.05)
+        self.layer_plot.axes.set_xlabel(r"Depth [$\mu$m]", fontsize=16)
+        self.layer_plot.axes.set_ylabel(r"dE/dx [keV/nm]", fontsize=16)
+        self.layer_plot.update_plot()
 
 class LayerForm(QtWidgets.QWidget):
 
@@ -144,9 +180,6 @@ class LayerItem(QtWidgets.QWidget):
             self.thickness_entry.value(),
             self.formula_entry.text()
         )
-
-
-
 
 class IonConfigForm(QtWidgets.QWidget):
     def __init__(self):

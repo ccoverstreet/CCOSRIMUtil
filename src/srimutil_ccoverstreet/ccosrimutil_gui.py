@@ -3,9 +3,6 @@ from PyQt6.QtCore import pyqtSignal as Signal
 from PyQt6.QtCore import Qt,QSize 
 from PyQt6.QtGui import QFont
 import sys
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
-from matplotlib.figure import Figure
 import numpy as np
 from dataclasses import dataclass
 from scipy.integrate import simpson
@@ -403,36 +400,9 @@ class MaterialForm(QtWidgets.QWidget):
         self.table.save_to_file(name)
 
 
-class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        layout = QtWidgets.QVBoxLayout()
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        self.fig = fig
-        super(MplCanvas, self).__init__(fig)
-
-    def update_plot(self):
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
 
 
-class PlotTab(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
 
-        self.canvas = MplCanvas()
-        self.fig = self.canvas.fig
-        self.axes = self.canvas.axes
-        self.toolbar = NavigationToolbar2QT(self.canvas)
-
-        layout = QtWidgets.QVBoxLayout()
-
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
-
-    def update_plot(self):
-        self.canvas.update_plot()
 
 
 class PlottingFrame(QtWidgets.QWidget):
@@ -443,12 +413,12 @@ class PlottingFrame(QtWidgets.QWidget):
 
         self.tab_widget = QtWidgets.QTabWidget()
 
-        self.dEdx_x = PlotTab()
-        self.dEdx_x_rho_norm = PlotTab()
-        self.dEdx_E = PlotTab()
-        self.annotated = PlotTab()
-        self.deriv = PlotTab()
-        self.E_x = PlotTab()
+        self.dEdx_x = util_gui.PlotTab()
+        self.dEdx_x_rho_norm = util_gui.PlotTab()
+        self.dEdx_E = util_gui.PlotTab()
+        self.annotated = util_gui.PlotTab()
+        self.deriv = util_gui.PlotTab()
+        self.E_x = util_gui.PlotTab()
 
         #layout.addWidget(demo)
         self.tab_widget.addTab(self.dEdx_x, "dE/dx(x)")
