@@ -353,6 +353,12 @@ def run_srim_layered(ion_config: IonConfigLayer, layers: [SRIMLayer], output_dir
     boundaries = []
 
     for i_layer, layer in enumerate(layers):
+        if E_0 == 0:
+            # Increment values for next loop
+            prev_x += layer.thickness
+            boundaries.append(prev_x)
+            continue
+
         output_name = f"{output_dir}/{i_layer:03d}_{layer.name}.srim"
 
         conf = SRIMConfig(
@@ -366,6 +372,8 @@ def run_srim_layered(ion_config: IonConfigLayer, layers: [SRIMLayer], output_dir
             10, # energy in keV
             E_0
         )
+
+        print("Layer conf", conf)
 
         run_srim_config(conf)
         table = convert_srim_to_table(read_srim_output(output_name),

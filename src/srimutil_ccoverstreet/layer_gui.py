@@ -53,8 +53,8 @@ class LayerPage(QtWidgets.QWidget):
         proj = srim.run_srim_layered(ion, layers, srim_dirname_parts)
         self.proj = proj
 
-        with open("test.json", "w") as f:
-            f.write(json.dumps(proj.to_json()))
+        with open(f"{srim_dirname_parts}/srim_layers.json", "w") as f:
+            f.write(json.dumps(proj.to_json(), indent=4))
 
         # Display plot results
         self.plot_project()
