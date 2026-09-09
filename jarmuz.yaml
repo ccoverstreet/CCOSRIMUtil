@@ -1,0 +1,5 @@
+build:
+  - which uv
+
+artifacts:
+  - ./ccosrimutil
