@@ -2,4 +2,4 @@ build:
   - which uv
 
 artifacts:
-  - ./ccosrimutil
+  - ccosrimutil
